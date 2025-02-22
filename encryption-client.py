@@ -2,7 +2,6 @@ import socket
 import threading
 from cryptography.fernet import Fernet
  
-
 def receive_messages():
     #receive the message from the server
     while True:
@@ -25,6 +24,11 @@ def send_message():
         if message.lower() == 'exit':
             client.close()
             break
+            
+        full_message = f"{nickname}: {message}"
+        encrypted_message = cipher_suite.encrypt(full_message.encode())
+        client.send(encrypted_message)
+
         encrypted_message = cipher_suite.encrypt(message.encode())
         client.send(encrypted_message)
 
@@ -37,6 +41,9 @@ try:
     #receive the encryption key from the server
     key = client.recv(1024)
     cipher_suite = Fernet(key)
+
+    #prompts client to input a nickname
+    nickname = input("Enter nickname: ")
 
     receive_thread = threading.Thread(target=receive_messages)
     receive_thread.start()

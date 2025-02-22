@@ -1,4 +1,8 @@
 import socket
+import threading #import threading for message sending and keeping track
+from cryptography.fernet import Fernet
+
+#generates encryption ket for client when sending messages
 import threading
 from cryptography.fernet import Fernet
 
@@ -12,6 +16,7 @@ server.listen(5)
 
 clients = []
 
+#extabslished connection to client for message sending
 def handle_client(conn, addr):
     print(f"Connection from {addr}")
 
@@ -19,11 +24,14 @@ def handle_client(conn, addr):
     conn.send(key)
     while True:
         try:
+
+            #allow server to receive encryped messages from client
             #allow user to type messages to send to the client
             data = conn.recv(1024)
             #allow user to exit the loop
             if not data:
                 break
+            #decrypes messages upon receiving
             decrypted_message = cipher_suite.decrypt(data).decode()
             print(f"Received from {addr}: {decrypted_message}")
             broadcast(data, conn)
@@ -31,7 +39,13 @@ def handle_client(conn, addr):
         except Exception as e:
             print(f"Error occured here: {e}")
             break
+
+    #closes the connection when messing is done
     conn.close()
+#broadcasts connection to 
+=======
+    conn.close()
+
 def broadcast(message, connection):
     for client in clients:
         if client != connection:
