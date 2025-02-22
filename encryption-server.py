@@ -3,6 +3,9 @@ import threading #import threading for message sending and keeping track
 from cryptography.fernet import Fernet
 
 #generates encryption ket for client when sending messages
+import threading
+from cryptography.fernet import Fernet
+
 key = Fernet.generate_key()
 cipher_suite = Fernet(key)
 
@@ -21,7 +24,9 @@ def handle_client(conn, addr):
     conn.send(key)
     while True:
         try:
+
             #allow server to receive encryped messages from client
+            #allow user to type messages to send to the client
             data = conn.recv(1024)
             #allow user to exit the loop
             if not data:
@@ -34,9 +39,13 @@ def handle_client(conn, addr):
         except Exception as e:
             print(f"Error occured here: {e}")
             break
+
     #closes the connection when messing is done
     conn.close()
 #broadcasts connection to 
+=======
+    conn.close()
+
 def broadcast(message, connection):
     for client in clients:
         if client != connection:
@@ -46,6 +55,12 @@ def broadcast(message, connection):
                 print(f"Error sending message: {e}")
                 client.close()
                 clients.remove(client)
+
+def send_message():
+    while True:
+        message = input("Server: ")
+        encrypted_message = cipher_suite.encrypt(message.encode())
+        broadcast(encrypted_message, None)
 
 print("Server started. Waiting for connection...")
 
