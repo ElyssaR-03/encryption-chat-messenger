@@ -24,9 +24,14 @@ def send_message():
         if message.lower() == 'exit':
             client.close()
             break
+            
         full_message = f"{nickname}: {message}"
         encrypted_message = cipher_suite.encrypt(full_message.encode())
         client.send(encrypted_message)
+
+        encrypted_message = cipher_suite.encrypt(message.encode())
+        client.send(encrypted_message)
+
 
 try:
     #open socket connection through TCP
@@ -48,4 +53,4 @@ try:
 
 #client error handling
 except Exception as e:
-    print( f"Client error: {e}")
+    print(f"Client error: {e}")

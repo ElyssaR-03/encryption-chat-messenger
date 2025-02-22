@@ -21,7 +21,9 @@ def handle_client(conn, addr):
     conn.send(key)
     while True:
         try:
+
             #allow server to receive encryped messages from client
+            #allow user to type messages to send to the client
             data = conn.recv(1024)
             #allow user to exit the loop
             if not data:
