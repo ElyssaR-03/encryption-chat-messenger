@@ -3,17 +3,15 @@ import threading
 from cryptography.fernet import Fernet
 
 
-#encryption_type = "symmetric"
-
 class Encrypt:
     def __init__(self):
         self.encrypt = True
 
 class Symmetric(Encrypt):
-    def __init__(self, client):
+    def __init__(self, key):
         super().__init__()
-        self.key = client.recv(1024)
-        self.cipher_suite = Fernet(self.key)
+        self.key = key
+        self.cipher_suite = Fernet(key)
 
     def encode(self, message):
         self.message = self.cipher_suite.encrypt(message.encode())
@@ -21,14 +19,6 @@ class Symmetric(Encrypt):
     def decode(self, data):
         self.message = self.cipher_suite.decrypt(data).decode()
 
-#symmetric_encryption = True
-
-#def symmetric_encryption(): 
-    
-#    global key, cipher_suite
-    
-#    key = client.recv(1024) 
-#    cipher_suite = Fernet(key)
 
 def receive_messages():
     #receive the message from the server
@@ -39,7 +29,6 @@ def receive_messages():
             if not data:
                 break
             encryption.decode(data)
-            #decrypted_message = cipher_suite.decrypt(data).decode()
             print(f"Received: {encryption.message}")
         #error handling in case it does not work properly
         except Exception as e:
@@ -54,7 +43,6 @@ def send_message():
             client.close()
             break
         encryption.encode(message)
-        #encrypted_message = cipher_suite.encrypt(message.encode())
         client.send(encryption.message)
 
 
@@ -63,7 +51,9 @@ try:
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(("127.0.0.1", 12345))
 
-    encryption = Symmetric(client)
+    key = client.recv(1024)
+
+    encryption = Symmetric(key)
 
     receive_thread = threading.Thread(target=receive_messages)
     receive_thread.start()

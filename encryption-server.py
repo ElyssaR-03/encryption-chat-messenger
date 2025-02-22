@@ -2,14 +2,6 @@ import socket
 import threading
 from cryptography.fernet import Fernet
 
-#symmetric_encryption = True
-
-#def symmetric_encryption():
-    
- #   global key, cipher_suite
-    
- #   key = Fernet.generate_key()
- #   cipher_suite = Fernet(key)
 
 class Encrypt:
     def __init__(self):
@@ -33,8 +25,6 @@ server.listen(5)
 
 clients = []
 
-#if symmetric_encryption:
-#    symmetric_encryption()
 
 def handle_client(conn, addr):
     print(f"Connection from {addr}")
@@ -49,7 +39,6 @@ def handle_client(conn, addr):
             if not data:
                 break
             encryption.decode(data)
-            #decrypted_message = cipher_suite.decrypt(data).decode()
             print(f"Received from {addr}: {encryption.message}")
             broadcast(data, conn)
         #error handling in case it does not work properly
@@ -71,7 +60,6 @@ def send_message():
     while True:
         message = input("Server: ")
         encryption.encode(message)
-        #encrypted_message = cipher_suite.encrypt(message.encode())
         broadcast(encryption.message, None)
 
 print("Server started. Waiting for connection...")
