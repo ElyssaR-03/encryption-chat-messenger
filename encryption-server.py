@@ -48,6 +48,7 @@ def broadcast(message, connection):
             try:
                 client.send(message)
             #if an error occurs, the client will be removed
+            #broadcast the client left the chat after removal
             except Exception as e:
                 print(f"Error sending message: {e}")
                 client.close()
