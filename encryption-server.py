@@ -38,6 +38,9 @@ def handle_client(conn, addr):
             break
     #closes the connection when messaging is done
     conn.close()
+    if conn in clients:
+        clients.remove(conn)
+        broadcast(f"Client {addr} has left the chat".encode(), conn)
 #broadcasts connection to all clients
 def broadcast(message, connection):
     for client in clients:
@@ -45,11 +48,12 @@ def broadcast(message, connection):
             try:
                 client.send(message)
             #if an error occurs, the client will be removed
+            #broadcast the client left the chat after removal
             except Exception as e:
                 print(f"Error sending message: {e}")
                 client.close()
                 clients.remove(client)
-                broadcast(f"{client} has left the chat", client)
+                broadcast(f"Client {addr} has left the chat".encode(), conn)
 
 print("Server started. Waiting for connection...")
 

@@ -13,6 +13,8 @@ def receive_messages():
             if not data:
                 break
             decrypted_message = cipher_suite.decrypt(data).decode()
+
+            #allows for the decrypted messages to be displayed in the chat window
             chat_area.config(state=tk.NORMAL)
             chat_area.insert(tk.END, decrypted_message + '\n')
             chat_area.config(state=tk.DISABLED)
@@ -23,10 +25,14 @@ def receive_messages():
     client.close
 
 def send_message():
+
+    #if clients types exit the chat and connection will close
     message = message_entry.get()
     if message.lower() == 'exit':
         client.close()
         root.quit()
+
+    #otherwise, continue to encrypt and send messages back and forth
     else:            
         full_message = f"{nickname}: {message}"
         encrypted_message = cipher_suite.encrypt(full_message.encode())
@@ -58,15 +64,19 @@ try:
     root = tk.Tk()
     root.title("Chat Client")   
 
+    #creates the chat window where the messages can be seen
     chat_area = scrolledtext.ScrolledText(root, wrap=tk.WORD)
     chat_area.pack(padx=10, pady=10)
-
+    
+    #allows the client to type messages to send to the server and display in window
     message_entry = tk.Entry(root)
     message_entry.pack(padx=10, pady=10)
 
+    #allows user to send their message to server to be displayed 
     send_button  = tk.Button(root, text="Send", command=send_message)
     send_button.pack()
     
+    #when client close the messaging, the window will close 
     root.protocol("WM_DELETE_WINDOW", client.close)
     root.mainloop()
 
