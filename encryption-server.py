@@ -1,8 +1,8 @@
 import socket
 import threading #import threading for message sending and keeping track
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet #import cryptography for encryption
 
-#generates encryption ket for client when sending messages
+#generates encryption key for client when sending messages
 key = Fernet.generate_key()
 cipher_suite = Fernet(key)
 
@@ -13,7 +13,7 @@ server.listen(5)
 
 clients = []
 
-#extabslished connection to client for message sending
+#established connection to client for message sending
 def handle_client(conn, addr):
     print(f"Connection from {addr}")
 
@@ -34,18 +34,20 @@ def handle_client(conn, addr):
         except Exception as e:
             print(f"Error occured here: {e}")
             break
-    #closes the connection when messing is done
+    #closes the connection when messaging is done
     conn.close()
-#broadcasts connection to 
+#broadcasts connection to all clients
 def broadcast(message, connection):
     for client in clients:
         if client != connection:
             try:
                 client.send(message)
+            #if an error occurs, the client will be removed
             except Exception as e:
                 print(f"Error sending message: {e}")
                 client.close()
                 clients.remove(client)
+                broadcast(f"{client} has left the chat", client)
 
 print("Server started. Waiting for connection...")
 
