@@ -50,6 +50,9 @@ def send_message():
 
 print("Server started. Waiting for connection...")
 
+server_send_thread = threading.Thread(target=send_message)
+server_send_thread.start()
+
 #close the connection and the server
 while True:
     conn, addr = server.accept()
