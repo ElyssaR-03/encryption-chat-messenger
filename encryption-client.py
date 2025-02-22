@@ -13,12 +13,39 @@ class Symmetric(Encrypt):
         self.key = key
         self.cipher_suite = Fernet(key)
 
+
     def encode(self, message):
         self.message = self.cipher_suite.encrypt(message.encode())
 
     def decode(self, data):
         self.message = self.cipher_suite.decrypt(data).decode()
 
+class Asymmetric(Encrypt):
+    def __init__(self, key):
+        self.public_key = serialization.load_pem_public_key(key)
+        
+        with open("server_private_key.pem", "rb"), f:
+            self.private_key = serialization.load_pem_private_key(f.read(), password=None)
+        
+    def encode(self, message):
+        self.message = self.public_key.encrypt(
+                message.encode(),
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                    )
+                )
+
+    def decode(self, data):
+        self.message = self.private_key.decrypt(
+                data,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()), 
+                    algorithm=hashes.SHA256(),
+                    label=None
+                    )
+                )
 
 def receive_messages():
     #receive the message from the server
@@ -53,7 +80,8 @@ try:
 
     key = client.recv(1024)
 
-    encryption = Symmetric(key)
+    #encryption = Symmetric(key)
+    encryption = Asymmetric(key)
 
     receive_thread = threading.Thread(target=receive_messages)
     receive_thread.start()
