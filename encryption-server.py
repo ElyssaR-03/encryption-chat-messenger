@@ -2,14 +2,29 @@ import socket
 import threading
 from cryptography.fernet import Fernet
 
-symmetric_encryption = True
+#symmetric_encryption = True
 
-def symmetric_encryption():
+#def symmetric_encryption():
     
-    global key, cipher_suite
+ #   global key, cipher_suite
     
-    key = Fernet.generate_key()
-    cipher_suite = Fernet(key)
+ #   key = Fernet.generate_key()
+ #   cipher_suite = Fernet(key)
+
+class Encrypt:
+    def __init__(self):
+        self.encrypt = True
+
+class Symmetric(Encrypt):
+    def __init__(self):
+        super().__init__()
+        self.key = Fernet.generate_key()
+        self.cipher_suite = Fernet(self.key)
+
+    def encode(self, message):
+        self.message = self.cipher_suite.encrypt(message.encode())
+    def decode(self, data):
+        self.message = self.cipher_suite.decrypt(data).decode()
 
 #open socket connection through TCP
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,14 +33,14 @@ server.listen(5)
 
 clients = []
 
-if symmetric_encryption:
-    symmetric_encryption()
+#if symmetric_encryption:
+#    symmetric_encryption()
 
 def handle_client(conn, addr):
     print(f"Connection from {addr}")
 
     #send the encryption key to the client
-    conn.send(key)
+    conn.send(encryption.key)
     while True:
         try:
             #allow user to type messages to send to the client
@@ -33,8 +48,9 @@ def handle_client(conn, addr):
             #allow user to exit the loop
             if not data:
                 break
-            decrypted_message = cipher_suite.decrypt(data).decode()
-            print(f"Received from {addr}: {decrypted_message}")
+            encryption.decode(data)
+            #decrypted_message = cipher_suite.decrypt(data).decode()
+            print(f"Received from {addr}: {encryption.message}")
             broadcast(data, conn)
         #error handling in case it does not work properly
         except Exception as e:
@@ -45,7 +61,7 @@ def broadcast(message, connection):
     for client in clients:
         if client != connection:
             try:
-                client.send(message)
+                client.send(encryption.message)
             except Exception as e:
                 print(f"Error sending message: {e}")
                 client.close()
@@ -54,13 +70,16 @@ def broadcast(message, connection):
 def send_message():
     while True:
         message = input("Server: ")
-        encrypted_message = cipher_suite.encrypt(message.encode())
-        broadcast(encrypted_message, None)
+        encryption.encode(message)
+        #encrypted_message = cipher_suite.encrypt(message.encode())
+        broadcast(encryption.message, None)
 
 print("Server started. Waiting for connection...")
 
 server_send_thread = threading.Thread(target=send_message)
 server_send_thread.start()
+
+encryption = Symmetric()
 
 #close the connection and the server
 while True:

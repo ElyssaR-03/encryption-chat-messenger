@@ -2,7 +2,8 @@ import socket
 import threading
 from cryptography.fernet import Fernet
 
-encryption_type = "symmetric"
+
+#encryption_type = "symmetric"
 
 class Encrypt:
     def __init__(self):
