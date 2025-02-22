@@ -1,15 +1,33 @@
 import socket
 import threading
 from cryptography.fernet import Fernet
- 
-symmetric_encryption = True
 
-def symmetric_encryption(): 
+encryption_type = "symmetric"
+
+class Encrypt:
+    def __init__(self):
+        self.encrypt = True
+
+class Symmetric(Encrypt):
+    def __init__(self, client):
+        super().__init__()
+        self.key = client.recv(1024)
+        self.cipher_suite = Fernet(self.key)
+
+    def encode(self, message):
+        self.message = self.cipher_suite.encrypt(message.encode())
+
+    def decode(self, data):
+        self.message = self.cipher_suite.decrypt(data).decode()
+
+#symmetric_encryption = True
+
+#def symmetric_encryption(): 
     
-    global key, cipher_suite
+#    global key, cipher_suite
     
-    key = client.recv(1024) 
-    cipher_suite = Fernet(key)
+#    key = client.recv(1024) 
+#    cipher_suite = Fernet(key)
 
 def receive_messages():
     #receive the message from the server
@@ -19,8 +37,9 @@ def receive_messages():
             data = client.recv(1024)
             if not data:
                 break
-            decrypted_message = cipher_suite.decrypt(data).decode()
-            print(f"Received: {decrypted_message}")
+            encryption.decode(data)
+            #decrypted_message = cipher_suite.decrypt(data).decode()
+            print(f"Received: {encryption.message}")
         #error handling in case it does not work properly
         except Exception as e:
             print(f"Error occured here {e}")
@@ -33,8 +52,9 @@ def send_message():
         if message.lower() == 'exit':
             client.close()
             break
-        encrypted_message = cipher_suite.encrypt(message.encode())
-        client.send(encrypted_message)
+        encryption.encode(message)
+        #encrypted_message = cipher_suite.encrypt(message.encode())
+        client.send(encryption.message)
 
 
 try:
@@ -42,9 +62,7 @@ try:
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(("127.0.0.1", 12345))
 
-    #receive the encryption key from the server
-    if symmetric_encryption:
-        symmetric_encryption()
+    encryption = Symmetric(client)
 
     receive_thread = threading.Thread(target=receive_messages)
     receive_thread.start()
