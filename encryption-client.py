@@ -2,6 +2,14 @@ import socket
 import threading
 from cryptography.fernet import Fernet
  
+symmetric_encryption = True
+
+def symmetric_encryption(): 
+    
+    global key, cipher_suite
+    
+    key = client.recv(1024) 
+    cipher_suite = Fernet(key)
 
 def receive_messages():
     #receive the message from the server
@@ -35,8 +43,8 @@ try:
     client.connect(("127.0.0.1", 12345))
 
     #receive the encryption key from the server
-    key = client.recv(1024)
-    cipher_suite = Fernet(key)
+    if symmetric_encryption:
+        symmetric_encryption()
 
     receive_thread = threading.Thread(target=receive_messages)
     receive_thread.start()

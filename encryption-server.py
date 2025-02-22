@@ -2,8 +2,14 @@ import socket
 import threading
 from cryptography.fernet import Fernet
 
-key = Fernet.generate_key()
-cipher_suite = Fernet(key)
+symmetric_encryption = True
+
+def symmetric_encryption():
+    
+    global key, cipher_suite
+    
+    key = Fernet.generate_key()
+    cipher_suite = Fernet(key)
 
 #open socket connection through TCP
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -11,6 +17,9 @@ server.bind(("127.0.0.1", 12345))
 server.listen(5)
 
 clients = []
+
+if symmetric_encryption:
+    symmetric_encryption()
 
 def handle_client(conn, addr):
     print(f"Connection from {addr}")
