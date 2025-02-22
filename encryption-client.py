@@ -1,6 +1,8 @@
 import socket
 import threading
 from cryptography.fernet import Fernet
+import tkinter as tk
+from tkinter import scrolledtext
  
 def receive_messages():
     #receive the message from the server
@@ -11,7 +13,9 @@ def receive_messages():
             if not data:
                 break
             decrypted_message = cipher_suite.decrypt(data).decode()
-            print(f"Received: {decrypted_message}")
+            chat_area.config(state=tk.NORMAL)
+            chat_area.insert(tk.END, decrypted_message + '\n')
+            chat_area.config(state=tk.DISABLED)
         #error handling in case it does not work properly
         except Exception as e:
             print(f"Error occured here {e}")
@@ -19,19 +23,20 @@ def receive_messages():
     client.close
 
 def send_message():
-    while True:
-        message = input("Client: ")
-        if message.lower() == 'exit':
-            client.close()
-            break
-            
+    message = message_entry.get()
+    if message.lower() == 'exit':
+        client.close()
+        root.quit()
+    else:            
         full_message = f"{nickname}: {message}"
         encrypted_message = cipher_suite.encrypt(full_message.encode())
         client.send(encrypted_message)
 
-        encrypted_message = cipher_suite.encrypt(message.encode())
-        client.send(encrypted_message)
-
+        chat_area.config(state=tk.NORMAL)
+        chat_area.config(state=tk.NORMAL)
+        chat_area.insert(tk.END, full_message + '\n')
+        chat_area.config(state=tk.DISABLED)
+        message_entry.delete(0, tk.END)
 
 try:
     #open socket connection through TCP
@@ -45,11 +50,25 @@ try:
     #prompts client to input a nickname
     nickname = input("Enter nickname: ")
 
+    #start threading for receiving messages
     receive_thread = threading.Thread(target=receive_messages)
     receive_thread.start()
 
-    send_thread = threading.Thread(target=send_message)
-    send_thread.start()
+    #create a GUI for the client
+    root = tk.Tk()
+    root.title("Chat Client")   
+
+    chat_area = scrolledtext.ScrolledText(root, wrap=tk.WORD)
+    chat_area.pack(padx=10, pady=10)
+
+    message_entry = tk.Entry(root)
+    message_entry.pack(padx=10, pady=10)
+
+    send_button  = tk.Button(root, text="Send", command=send_message)
+    send_button.pack()
+    
+    root.protocol("WM_DELETE_WINDOW", client.close)
+    root.mainloop()
 
 #client error handling
 except Exception as e:
