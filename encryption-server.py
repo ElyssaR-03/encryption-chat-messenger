@@ -1,8 +1,10 @@
+import os
 import socket
 import threading
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 class Encrypt:
     def __init__(self):
@@ -62,30 +64,31 @@ class Asymmetric(Encrypt):
                     )
                 ).decode()
 
-class Hybrid(Hybrid):
+class Hybrid(Encrypt):
     def __init__(self):
         super().__init__()
+        self.key_ready = False
 
         self.private_key = rsa.generate_private_key(
                 public_exponent=65537,
                 key_size=2048
                 )
-        self.public_key = private_key.public_key()
+        self.public_key = self.private_key.public_key()
 
         with open("server_private_key.pem", "wb") as f:
             f.write(self.private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PCKS8,
+                format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
                 ))
 
         with open("server_public_key.pem", "wb") as f:
-            f.write(public_key.public_bytes(
+            f.write(self.public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo))
 
     def decrypt_key(self, encrypted_key):
-        with open("server_private_key.pem", "wb") as f:
+        with open("server_private_key.pem", "rb") as f:
             self.private_key = serialization.load_pem_private_key(f.read(), password=None)
         
         self.key_decrypted = self.private_key.decrypt(
@@ -96,6 +99,7 @@ class Hybrid(Hybrid):
                     label=None
                     )
                 )
+        self.key_ready = True
 
     def encode(self, message):
         initialization_vector = os.urandom(16)
@@ -128,15 +132,23 @@ server.listen(5)
 
 clients = []
 
+encryption = Hybrid()
+
 
 def handle_client(conn, addr):
     print(f"Connection from {addr}")
 
-    #send the encryption key to the client
+    encrypted_key = conn.recv(256)
+    encryption.decrypt_key(encrypted_key)
+
+#send the encryption key to the client
     if type(encryption) == Symmetric: 
         conn.send(encryption.key)
     elif type(encryption) == Asymmetric:
         conn.send(encryption.public_bytes)
+    #elif isinstance(encryption, Hybrid):
+    #    encrypted_key = conn.recv(1024)
+    #    encryption.decrypt(encrypted_key)
 
     while True:
         try:
@@ -164,6 +176,11 @@ def broadcast(message, connection):
                 clients.remove(client)
 
 def send_message():
+    
+    if isinstance(encryption, Hybrid):
+        while not encryption.key_ready:
+            pass
+
     while True:
         message = input("Server: ")
         encryption.encode(message)
@@ -171,24 +188,23 @@ def send_message():
 
 print("Server started. Waiting for connection...")
 
+#encryption = Hybrid()
+#if isinstance(encryption, Hybrid):
+#    encrypted_key = conn.recv(1024)
+#    encryption.decrypt(encrypted_key)
+
 server_send_thread = threading.Thread(target=send_message)
 server_send_thread.start()
 
 #encryption = Symmetric()
-encryption = Asymmetric()
-
-if type(encryption) == Hybrid:
-if type(encryption) == Hybrid:
+#encryption = Asymmetric()
+#encryption = Hybrid()
 
 
 #close the connection and the server
 while True:
     conn, addr = server.accept()
     
-    if type(encryption) == Hybrid:
-        encrypted_key = conn.recv(1024)
-        encryption.decrypt(encrypted_key)
-        
     clients.append(conn)
     thread = threading.Thread(target=handle_client, args=(conn, addr))
     thread.start()

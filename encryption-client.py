@@ -5,6 +5,9 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding as sym_padding
+
+
 
 class Encrypt:
     def __init__(self):
@@ -57,7 +60,7 @@ class Hybrid(Encrypt):
         with open("server_public_key.pem", "rb") as f:
             self.server_public_key = serialization.load_pem_public_key(f.read())
 
-        self.encrypted_key = self.server_public_key,encrypt(
+        self.encrypted_key = self.server_public_key.encrypt(
                 self.key,
                 padding.OAEP(
                     mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -70,7 +73,7 @@ class Hybrid(Encrypt):
 
     def encode(self, message):
         initialization_vector = os.urandom(16)
-        cipher = Cipher(algorithms.AES(self.key), models.CBC(initialization_vector))
+        cipher = Cipher(algorithms.AES(self.key), modes.CBC(initialization_vector))
         encryptor = cipher.encryptor()
 
         padder = sym_padding.PKCS7(128).padder()
@@ -116,7 +119,9 @@ try:
     key = client.recv(1024)
 
     #encryption = Symmetric(key)
-    encryption = Asymmetric(key)
+    #encryption = Asymmetric(key)
+
+    encryption = Hybrid()
 
     if type(encryption) == Hybrid:
         client.send(encryption.encrypted_key)
