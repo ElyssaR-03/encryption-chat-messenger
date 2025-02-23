@@ -27,12 +27,12 @@ class Asymmetric(Encrypt):
         
         self.private_bytes = self.private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PCKS58,
+                format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption())
 
         self.public_bytes = self.public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo))
+                format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
         with open("server_private_key.pem", "wb") as f:
             f.write(self.private_bytes)
@@ -40,7 +40,6 @@ class Asymmetric(Encrypt):
         with open("server_public_key.pem", "wb") as f:
             f.write(self.public_bytes)
 
-        print("Messaging with asymmetric encryption")
         print("RSA key pair generated successfully by server")
 
     def encode(self, message):
@@ -61,7 +60,66 @@ class Asymmetric(Encrypt):
                     algorithm=hashes.SHA256(),
                     label=None
                     )
+                ).decode()
+
+class Hybrid(Hybrid):
+    def __init__(self):
+        super().__init__()
+
+        self.private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048
                 )
+        self.public_key = private_key.public_key()
+
+        with open("server_private_key.pem", "wb") as f:
+            f.write(self.private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PCKS8,
+                encryption_algorithm=serialization.NoEncryption()
+                ))
+
+        with open("server_public_key.pem", "wb") as f:
+            f.write(public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo))
+
+    def decrypt_key(self, encrypted_key):
+        with open("server_private_key.pem", "wb") as f:
+            self.private_key = serialization.load_pem_private_key(f.read(), password=None)
+        
+        self.key_decrypted = self.private_key.decrypt(
+                encrypted_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                    )
+                )
+
+    def encode(self, message):
+        initialization_vector = os.urandom(16)
+        cipher = Cipher(algorithms.AES(self.key_decrypted), models.CBC(initialization_vector))
+        encryptor = cipher.encryptor()
+        padder = sym_padding.PKCS7(128).padder()
+        padded_data = padder.update(message.encode()) + padder.finalize()
+        cipher_text = encryptor.update(padded_data) + encryptor.finalize()
+
+        self.message = initialization_vector + cipher_text
+
+    def decode(self, message):
+        initialization_vector = message[:16]
+        ciphertext = message[16:]
+
+        cipher = Cipher(algorithms.AES(self.key_decrypted), modes.CBC(initialization_vector))
+        decryptor = cipher.decryptor()
+
+        padded_message = decryptor.update(ciphertext) + decryptor.finalize()
+
+        unpader = sym_padding.PKCS7(128).unpadder()
+        self.message = unpader.update(padded_message) + unpadder.finalize()
+        self.message = self.message.decode()
+
 
 #open socket connection through TCP
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -119,9 +177,18 @@ server_send_thread.start()
 #encryption = Symmetric()
 encryption = Asymmetric()
 
+if type(encryption) == Hybrid:
+if type(encryption) == Hybrid:
+
+
 #close the connection and the server
 while True:
     conn, addr = server.accept()
+    
+    if type(encryption) == Hybrid:
+        encrypted_key = conn.recv(1024)
+        encryption.decrypt(encrypted_key)
+        
     clients.append(conn)
     thread = threading.Thread(target=handle_client, args=(conn, addr))
     thread.start()
