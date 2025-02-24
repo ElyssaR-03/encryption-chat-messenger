@@ -1,3 +1,4 @@
+#code written by Elyssa Ratliff
 import socket
 import threading
 from cryptography.fernet import Fernet

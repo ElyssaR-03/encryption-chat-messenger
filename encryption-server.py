@@ -1,3 +1,4 @@
+#code written by Elyssa Ratliff
 import socket
 import threading #import threading for message sending and keeping track
 from cryptography.fernet import Fernet #import cryptography for encryption
