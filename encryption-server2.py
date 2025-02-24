@@ -5,28 +5,81 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+import time
 
+#class implementation by karla robles
+#this section aims to encapsulate the symmetric and asymmetric encryption classes into a
+#single class such that they may be called with the same function calls elsewhere
+#with the aim of enhancing code readability
 class Encrypt:
     def __init__(self):
         self.encrypt = True
+        self.time_to_encode = []
+        self.time_to_decode = []
+
 
 class Symmetric(Encrypt):
     def __init__(self):
         super().__init__()
+
+        print("Initializing symmetric encryption class")
+
         self.key = Fernet.generate_key()
         self.cipher_suite = Fernet(self.key)
 
+        print("Key and cipher suite generated")
+
     def encode(self, message):
+
+        print("Symmetric encryption encoding message...")
+        print(f"Message: {message}")
+        
+        time_start = time.perf_counter()
+
         self.message = self.cipher_suite.encrypt(message.encode())
+    
+        time_end = time.perf_counter()
+
+        encoding_time = time_end - time_start
+
+        print(f"Encoded message: {self.message}")
+        print(f"Encoding took: {encoding_time} seconds") 
+
+
+        self.time_to_encode.append(encoding_time)
+
+
     def decode(self, data):
+
+        print("Symmetric encryption decoding message...")
+        print(f"Message: {data}")
+
+        time_start = time.perf_counter()
+
         self.message = self.cipher_suite.decrypt(data).decode()
+
+        time_end = time.perf_counter()
+
+        decoding_time = time_end - time_start
+
+        print(f"Decoded message: {self.message}")
+        print(f"Decoding took: {decoding_time} seconds")
+
+        self.time_to_decode.append(decoding_time)
+
 
 class Asymmetric(Encrypt):
     def __init__(self):
         super().__init__()
+
+        print("Initializing asymmetric encryption class")
+
         self.private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         self.public_key = self.private_key.public_key()
         
+        print("RSA private key generated")
+        print("Public key generated")
+
         self.private_bytes = self.private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
@@ -42,9 +95,15 @@ class Asymmetric(Encrypt):
         with open("server_public_key.pem", "wb") as f:
             f.write(self.public_bytes)
 
-        print("RSA key pair generated successfully by server")
+        print("Private and public keys generated and writted to pem files")
+
 
     def encode(self, message):
+        print("Asymmetric encryption encoding message...")
+        print(f"Message: {message}")
+
+        time_start = time.perf_counter()
+
         self.message = self.public_key.encrypt(
                 message.encode(),
                 padding.OAEP(
@@ -53,8 +112,22 @@ class Asymmetric(Encrypt):
                     label=None
                     )
                 )
+        time_end = time.perf_counter()
+
+        encoding_time = time_end - time_start
+
+        print(f"Encoded message: {self.message}")
+        print(f"Encoding took: {encoding_time} seconds")
+
+        self.time_to_encode.append(encoding_time)
 
     def decode(self, data):
+
+        print("Asymmetric encryption decoding message...")
+        print(f"Message: {data}")
+
+        time_start = time.perf_counter()
+
         self.message = self.private_key.decrypt(
                 data,
                 padding.OAEP(
@@ -64,66 +137,14 @@ class Asymmetric(Encrypt):
                     )
                 ).decode()
 
-class Hybrid(Encrypt):
-    def __init__(self):
-        super().__init__()
-        self.key_ready = False
-
-        self.private_key = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size=2048
-                )
-        self.public_key = self.private_key.public_key()
-
-        with open("server_private_key.pem", "wb") as f:
-            f.write(self.private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
-                ))
-
-        with open("server_public_key.pem", "wb") as f:
-            f.write(self.public_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo))
-
-    def decrypt_key(self, encrypted_key):
-        with open("server_private_key.pem", "rb") as f:
-            self.private_key = serialization.load_pem_private_key(f.read(), password=None)
+        time_end = time.perf_counter()
         
-        self.key_decrypted = self.private_key.decrypt(
-                encrypted_key,
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                    algorithm=hashes.SHA256(),
-                    label=None
-                    )
-                )
-        self.key_ready = True
+        decoding_time = time_end - time_start
 
-    def encode(self, message):
-        initialization_vector = os.urandom(16)
-        cipher = Cipher(algorithms.AES(self.key_decrypted), models.CBC(initialization_vector))
-        encryptor = cipher.encryptor()
-        padder = sym_padding.PKCS7(128).padder()
-        padded_data = padder.update(message.encode()) + padder.finalize()
-        cipher_text = encryptor.update(padded_data) + encryptor.finalize()
+        print(f"Decoded message: {self.message}")
+        print(f"Decoding took: {decoding_time} seconds")
 
-        self.message = initialization_vector + cipher_text
-
-    def decode(self, message):
-        initialization_vector = message[:16]
-        ciphertext = message[16:]
-
-        cipher = Cipher(algorithms.AES(self.key_decrypted), modes.CBC(initialization_vector))
-        decryptor = cipher.decryptor()
-
-        padded_message = decryptor.update(ciphertext) + decryptor.finalize()
-
-        unpader = sym_padding.PKCS7(128).unpadder()
-        self.message = unpader.update(padded_message) + unpadder.finalize()
-        self.message = self.message.decode()
-
+        self.time_to_decode.append(decoding_time)
 
 #open socket connection through TCP
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,23 +153,19 @@ server.listen(5)
 
 clients = []
 
-encryption = Hybrid()
+#encryption_symmetric = Symmetric()
+encryption_asymmetric = Asymmetric()
 
 
 def handle_client(conn, addr):
+    
     print(f"Connection from {addr}")
 
-    encrypted_key = conn.recv(256)
-    encryption.decrypt_key(encrypted_key)
+#    print("Server sent symmetric key to client")
+#    conn.send(encryption_symmetric.key)
 
-#send the encryption key to the client
-    if type(encryption) == Symmetric: 
-        conn.send(encryption.key)
-    elif type(encryption) == Asymmetric:
-        conn.send(encryption.public_bytes)
-    #elif isinstance(encryption, Hybrid):
-    #    encrypted_key = conn.recv(1024)
-    #    encryption.decrypt(encrypted_key)
+    print("Server sent asymmetric bytes to client")
+    conn.send(encryption_asymmetric.public_bytes)
 
     while True:
         try:
@@ -157,19 +174,23 @@ def handle_client(conn, addr):
             #allow user to exit the loop
             if not data:
                 break
-            encryption.decode(data)
-            print(f"Received from {addr}: {encryption.message}")
+#            encryption_symmetric.decode(data)
+            encryption_asymmetric.decode(data)
+#            print(f"Received from {addr}: {encryption_symmetric.message}")
+            print(f"Received from {addr}: {encryption_asymmetric.message}")
             broadcast(data, conn)
         #error handling in case it does not work properly
         except Exception as e:
             print(f"Error occured here: {e}")
             break
     conn.close()
+
 def broadcast(message, connection):
     for client in clients:
         if client != connection:
             try:
-                client.send(encryption.message)
+#                client.send(encryption_symmetric.message)
+                client.send(encryption_asymmetric.message)
             except Exception as e:
                 print(f"Error sending message: {e}")
                 client.close()
@@ -177,20 +198,19 @@ def broadcast(message, connection):
 
 def send_message():
     
-    if isinstance(encryption, Hybrid):
-        while not encryption.key_ready:
-            pass
-
     while True:
         message = input("Server: ")
-        encryption.encode(message)
-        broadcast(encryption.message, None)
+#        encryption_symmetric.encode(message)
+        encryption_asymmetric.encode(message)
+        
+#        broadcast(encryption_symmetric.message, None)
+        broadcast(encryption_asymmetric.message, None)
 
 print("Server started. Waiting for connection...")
 
-server_send_thread.start()
-server_send_thread = threading.Thread(target=send_message)
 
+server_send_thread = threading.Thread(target=send_message)
+server_send_thread.start()
 
 
 #close the connection and the server
