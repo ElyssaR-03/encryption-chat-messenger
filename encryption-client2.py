@@ -66,10 +66,10 @@ def receive_messages():
             if not data:
                 break
             
-#            encryption_symmetric.decode(data)
+ #           encryption_symmetric.decode(data)
             encryption_asymmetric.decode(data)
 
-#            print(f"Received: {encryption_symmetric.message}")
+            print(f"Received: {encryption_symmetric.message}")
             print(f"Received: {encryption_asymmetric.message}")
         #error handling in case it does not work properly
         except Exception as e:

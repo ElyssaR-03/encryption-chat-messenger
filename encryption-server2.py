@@ -153,7 +153,7 @@ server.listen(5)
 
 clients = []
 
-#encryption_symmetric = Symmetric()
+encryption_symmetric = Symmetric()
 encryption_asymmetric = Asymmetric()
 
 
@@ -200,7 +200,7 @@ def send_message():
     
     while True:
         message = input("Server: ")
-#        encryption_symmetric.encode(message)
+        encryption_symmetric.encode(message)
         encryption_asymmetric.encode(message)
         
 #        broadcast(encryption_symmetric.message, None)
